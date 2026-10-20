@@ -1,0 +1,57 @@
+﻿# ============================================
+# BACKEND
+# ============================================
+
+# Python
+*.py[cod]
+*$py.class
+__pycache__/
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# Django
+*.log
+db.sqlite3
+/media/
+/staticfiles/
+
+# Redis / Celery
+dump.rdb
+celerybeat-schedule
+celerybeat.pid
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test JSONs
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
+
+# Backup
+_backup/
+
+# Node
+node_modules/
+
+# ============================================
+# FRONTEND — فعلاً push نمی‌شود
+# ============================================
+frontend/
