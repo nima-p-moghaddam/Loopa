@@ -6,13 +6,17 @@ export default function SettingsLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="py-6 mx-auto w-full sm:max-w-4xl">
-            <div className="flex flex-col md:flex-row gap-6">
-                {/* Sidebar */}
-                <SettingsSidebar />
+        <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6">
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+                {/* سایدبار تنظیمات */}
+                <div className="w-full md:w-64 shrink-0 md:sticky md:top-24">
+                    <SettingsSidebar />
+                </div>
 
-                {/* Content */}
-                <main className="flex-1 min-w-0">{children}</main>
+                {/* محتوای اصلی */}
+                <main className="flex-1 w-full min-w-0 bg-card border border-border/50 rounded-3xl p-6 sm:p-8 shadow-[var(--shadow-card)]">
+                    {children}
+                </main>
             </div>
         </div>
     );

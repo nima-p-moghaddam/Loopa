@@ -1,67 +1,41 @@
 "use client";
 
-import { Users, Grid3x3 } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type Tab = "users" | "posts";
+const CATEGORIES = [
+    { label: "همه", value: "" },
+    { label: "ماشین", value: "ماشین" },
+    { label: "طبیعت", value: "طبیعت" },
+    { label: "تکنولوژی", value: "تکنولوژی" },
+    { label: "ورزش", value: "ورزش" },
+    { label: "هنر", value: "هنر" },
+];
 
-interface ExploreTabsProps {
-    activeTab: Tab;
-    onTabChange: (tab: Tab) => void;
-}
+export function ExploreTabs() {
+    const searchParams = useSearchParams();
+    const currentQuery = searchParams.get("q") || "";
 
-export function ExploreTabs({ activeTab, onTabChange }: ExploreTabsProps) {
     return (
-        <div className="flex border-b">
-            <TabButton
-                isActive={activeTab === "users"}
-                onClick={() => onTabChange("users")}
-                icon={<Users className="h-4 w-4" />}
-                label="کاربران"
-            />
-            <TabButton
-                isActive={activeTab === "posts"}
-                onClick={() => onTabChange("posts")}
-                icon={<Grid3x3 className="h-4 w-4" />}
-                label="پست‌ها"
-            />
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {CATEGORIES.map((cat) => {
+                const isActive = currentQuery === cat.value;
+                return (
+                    <Link
+                        key={cat.label}
+                        href={`/explore?q=${encodeURIComponent(cat.value)}`}
+                        className={cn(
+                            "px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 border",
+                            isActive
+                                ? "bg-primary text-primary-foreground border-primary shadow-md"
+                                : "bg-card text-muted-foreground border-border/50 hover:bg-secondary hover:text-foreground"
+                        )}
+                    >
+                        {cat.label}
+                    </Link>
+                );
+            })}
         </div>
-    );
-}
-
-function TabButton({
-    isActive,
-    onClick,
-    icon,
-    label,
-}: {
-    isActive: boolean;
-    onClick: () => void;
-    icon: React.ReactNode;
-    label: string;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium",
-                "transition-colors relative press-feedback",
-                isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-            )}
-        >
-            {icon}
-            {label}
-
-            {/* Animated underline */}
-            <span
-                className={cn(
-                    "absolute bottom-0 h-0.5 rounded-full bg-primary",
-                    "transition-all duration-300 ease-out",
-                    isActive ? "w-12 opacity-100" : "w-0 opacity-0"
-                )}
-            />
-        </button>
     );
 }

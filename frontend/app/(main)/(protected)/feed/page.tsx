@@ -12,22 +12,14 @@ import { useFeed } from "@/hooks/use-posts";
 import { cn } from "@/lib/utils";
 
 export default function FeedPage() {
-    const { userEmail, logout } = useAuth();
+    const { logout } = useAuth();
     const router = useRouter();
 
     const {
-        data,
-        isLoading,
-        isError,
-        error,
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage,
-        refetch,
-        isRefetching
+        data, isLoading, isError, error,
+        fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching
     } = useFeed();
 
-    // 👇 پیاده‌سازی IntersectionObserver برای اسکرول بی‌نهایت
     const observerTarget = useRef(null);
 
     const handleObserver = useCallback(
@@ -45,77 +37,41 @@ export default function FeedPage() {
         const option = { root: null, rootMargin: "0px", threshold: 0.1 };
         const observer = new IntersectionObserver(handleObserver, option);
         if (element) observer.observe(element);
-        return () => {
-            if (element) observer.unobserve(element);
-        };
+        return () => { if (element) observer.unobserve(element); };
     }, [handleObserver]);
 
-    function handleLogout() {
-        logout();
-        router.replace("/login");
-    }
-
-    // ادغام تمام صفحات لود شده در یک آرایه
     const allPosts = data?.pages.flatMap((page) => page.results) ?? [];
 
     return (
-        <div className="space-y-6 pb-20">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">فید</h1>
-                    <p className="text-muted-foreground mt-1">خوش اومدی، {userEmail}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    {/* دکمه رفرش با انیمیشن چرخشی */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => refetch()}
-                        disabled={isRefetching}
-                        className="press-feedback rounded-full"
-                        aria-label="به‌روزرسانی فید"
-                    >
-                        <RefreshCw className={cn("h-5 w-5 transition-transform duration-500", isRefetching && "animate-spin")} />
-                    </Button>
-                    <Button variant="outline" onClick={handleLogout} className="press-feedback">
-                        خروج
-                    </Button>
-                </div>
-            </div>
+        <div className="space-y-6 pb-20 max-w-5xl mx-auto py-6 px-4 sm:px-6">
 
-            {/* Story Bar */}
+            {/* استوری بار */}
             <StoryBar />
 
             {/* Content */}
             {isError ? (
-                <div className="border rounded-2xl p-12 text-center text-destructive">
+                <div className="border border-destructive/20 bg-destructive/5 text-destructive text-center py-12 rounded-3xl">
                     خطا در بارگذاری فید.
-                    <br />
-                    <span className="text-xs text-muted-foreground">{(error as Error)?.message}</span>
                 </div>
             ) : (
                 <>
                     {isLoading ? (
-                        <div className="mx-auto w-full sm:max-w-[540px] space-y-4">
-                            {[1, 2, 3].map((i) => <PostSkeleton key={i} />)}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[1, 2, 3, 4].map((i) => <PostSkeleton key={i} />)}
                         </div>
                     ) : allPosts.length > 0 ? (
-                        <div className="mx-auto w-full sm:max-w-[540px]">
+                        <div className="space-y-8">
                             <PostList posts={allPosts} />
 
-                            {/* لودر پایین صفحه برای اسکرول بی‌نهایت */}
                             <div ref={observerTarget} className="py-8 flex justify-center">
-                                {isFetchingNextPage && <PostSkeleton />}
+                                {isFetchingNextPage && <div className="animate-pulse text-primary">در حال بارگذاری...</div>}
                                 {!hasNextPage && allPosts.length > 0 && (
-                                    <p className="text-muted-foreground text-sm text-center">
-                                        به پایان پست‌ها رسیدی ✨
-                                    </p>
+                                    <p className="text-muted-foreground text-sm text-center">به پایان پست‌ها رسیدی ✨</p>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div className="border rounded-2xl p-12 text-center text-muted-foreground">
+                        <div className="border border-border/50 rounded-3xl p-12 text-center text-muted-foreground bg-card shadow-sm">
                             هنوز پستی توی فیدت نیست. یه کاربر رو دنبال کن!
                         </div>
                     )}

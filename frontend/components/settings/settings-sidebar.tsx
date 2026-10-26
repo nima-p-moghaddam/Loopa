@@ -22,7 +22,7 @@ export function SettingsSidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="w-full md:w-56 shrink-0">
+        <aside className="bg-card border border-border/50 rounded-3xl p-3 shadow-sm">
             <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible scrollbar-hide">
                 {tabs.map((tab) => {
                     const isActive = pathname === tab.href;
@@ -33,13 +33,13 @@ export function SettingsSidebar() {
                             key={tab.href}
                             href={tab.href}
                             className={cn(
-                                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 md:shrink",
+                                "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200 whitespace-nowrap shrink-0 md:shrink",
                                 isActive
-                                    ? "bg-accent text-accent-foreground"
-                                    : "text-foreground/80 hover:bg-accent/50 hover:text-foreground"
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                             )}
                         >
-                            <Icon className="h-4 w-4 shrink-0" />
+                            <Icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
                             {tab.label}
                         </Link>
                     );

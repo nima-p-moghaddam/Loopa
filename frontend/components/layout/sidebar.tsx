@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {usePathname} from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
     House,
     Compass,
@@ -10,10 +10,9 @@ import {
     UserRound,
     SquarePen,
 } from "lucide-react";
-import {Button} from "@/components/ui/button";
-import {Separator} from "@/components/ui/separator";
-import {useAuth} from "@/providers/auth-provider";
-import {cn} from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/providers/auth-provider";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
     href: string;
@@ -23,13 +22,13 @@ interface NavItem {
 
 export function Sidebar() {
     const pathname = usePathname();
-    const {pageName} = useAuth();
+    const { pageName } = useAuth();
 
     const navItems: NavItem[] = [
-        {href: "/feed", label: "خانه", icon: House},
-        {href: "/explore", label: "کاوش", icon: Compass},
-        {href: "/messages", label: "پیام‌ها", icon: MessagesSquare},
-        {href: "/saved", label: "ذخیره‌شده‌ها", icon: Bookmark},
+        { href: "/feed", label: "خانه", icon: House },
+        { href: "/explore", label: "کاوش", icon: Compass },
+        { href: "/messages", label: "پیام‌ها", icon: MessagesSquare },
+        { href: "/saved", label: "ذخیره‌شده‌ها", icon: Bookmark },
     ];
 
     if (pageName) {
@@ -41,24 +40,24 @@ export function Sidebar() {
     }
 
     return (
-        <aside
-            className="hidden lg:flex flex-col w-60 xl:w-64 shrink-0 sticky top-16 h-[calc(100vh-4rem)] py-6 px-4 gap-2">
-            {/* Create Post Button */}
+        <aside className="hidden lg:flex flex-col items-center w-[72px] shrink-0 sticky top-24 h-[calc(100vh-8rem)] py-6 gap-4">
+
+            {/* Create Post Button (Icon Only) */}
             <Button
                 asChild
-                size="lg"
-                className="w-full justify-start gap-2 mb-2 btn-primary-rich"
+                size="icon"
+                className="h-12 w-12 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(145,199,165,0.3)] transition-transform hover:scale-105"
+                title="ساخت پست جدید"
             >
                 <Link href="/posts/new">
-                    <SquarePen className="h-5 w-5"/>
-                    ساخت پست
+                    <SquarePen className="h-6 w-6" />
                 </Link>
             </Button>
 
-            <Separator className="my-2"/>
+            <div className="w-8 h-px bg-border my-2" />
 
             {/* Nav Items */}
-            <nav className="flex flex-col gap-1">
+            <nav className="flex flex-col gap-3 w-full items-center">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href;
                     const Icon = item.icon;
@@ -67,15 +66,20 @@ export function Sidebar() {
                         <Link
                             key={item.href}
                             href={item.href}
+                            title={item.label}
                             className={cn(
-                                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                                "group relative flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300",
                                 isActive
-                                    ? "bg-primary/15 text-primary font-semibold"
-                                    : "text-foreground/80 hover:bg-muted hover:text-foreground hover:translate-x-0.5"
+                                    ? "bg-secondary text-primary shadow-sm"
+                                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                             )}
                         >
-                            <Icon className="h-5 w-5"/>
-                            {item.label}
+                            <Icon className={cn("h-6 w-6", isActive && "stroke-[2.5px]")} />
+
+                            {/* نشانگر کوچک برای آیتم فعال */}
+                            {isActive && (
+                                <span className="absolute -right-2 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-primary rounded-r-full" />
+                            )}
                         </Link>
                     );
                 })}

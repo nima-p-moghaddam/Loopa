@@ -32,14 +32,12 @@ export function StoryRing({
                 className={cn(
                     "rounded-full p-[2.5px] transition-all duration-200",
                     "group-hover:scale-105",
-                    isOwn
-                        ? "bg-brand-gradient"
-                        : hasViewed
-                            ? "bg-muted"
-                            : "bg-story-unseen"
+                    hasViewed
+                        ? "bg-border" // 👈 نوار خاکستری اگر دیده شده
+                        : "bg-gradient-to-tr from-primary to-success" // 👈 نوار رنگی اگر دیده نشده
                 )}
             >
-                <div className="rounded-full p-[2px] bg-background">
+                <div className="rounded-full p-[2px] bg-card">
                     <UserAvatar
                         avatar={avatar}
                         fallback={displayName}

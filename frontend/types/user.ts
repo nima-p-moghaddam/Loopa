@@ -10,8 +10,9 @@ export interface Profile {
     full_name: string | null;
     email: string | null;
     avatar: string | null;
+    cover_image: string | null; // 👈 جدید
     is_online: boolean;
-    is_email_verified: boolean;          // ← جدید
+    is_email_verified: boolean;
     bio: string | null;
     posts_count: number;
     subscriber_count: number;

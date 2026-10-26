@@ -102,14 +102,14 @@ class BaseUser(BaseModel, AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(
         verbose_name="Email",
         max_length=254,
-        unique=True,                                    # ← مهم
+        unique=True,  # ← مهم
     )
 
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)  # ← جدید
 
-    last_seen = models.DateTimeField(                   # ← جدید
+    last_seen = models.DateTimeField(  # ← جدید
         null=True,
         blank=True,
         db_index=True,
@@ -143,6 +143,12 @@ class Profile(models.Model):
         null=True,
         blank=True,
     )
+
+    cover_image = models.ImageField(
+        upload_to="covers/%Y/%m/",
+        null=True, blank=True
+    )  # 👈 جدید
+
     page_name = models.CharField(...)
 
     page_name = models.CharField(

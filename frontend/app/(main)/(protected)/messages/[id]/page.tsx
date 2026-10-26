@@ -30,62 +30,23 @@ export default function ChatPage({ params }: ChatPageProps) {
 
     const [isSearching, setIsSearching] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [highlightMessageId, setHighlightMessageId] = useState<number | null>(
-        null,
-    );
+    const [highlightMessageId, setHighlightMessageId] = useState<number | null>(null);
 
-    const { data: searchData } = useSearchMessages(
-        conversationId,
-        isSearching ? searchQuery : "",
-    );
+    const { data: searchData } = useSearchMessages(conversationId, isSearching ? searchQuery : "");
 
     useEffect(() => {
-        if (
-            conversation &&
-            conversation.unread_count > 0 &&
-            !markAsRead.isPending
-        ) {
+        if (conversation && conversation.unread_count > 0 && !markAsRead.isPending) {
             markAsRead.mutate();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [conversation?.unread_count]);
 
-    useEffect(() => {
-        setReplyTo(null);
-        setIsSearching(false);
-        setSearchQuery("");
-        setHighlightMessageId(null);
-    }, [conversationId]);
-
-    function handleSearchToggle() {
-        setIsSearching((v) => {
-            if (v) setSearchQuery("");
-            return !v;
-        });
-    }
-
-    function handleCloseSearch() {
-        setIsSearching(false);
-        setSearchQuery("");
-    }
-
-    function handleResultClick(messageId: number) {
-        setIsSearching(false);
-        setSearchQuery("");
-        setHighlightMessageId(messageId);
-
-        setTimeout(() => setHighlightMessageId(null), 2500);
-    }
-
-    if (isLoading) {
-        return <LoadingSpinner text="در حال بارگذاری..." />;
-    }
+    if (isLoading) return <LoadingSpinner />;
 
     if (!conversation) {
         return (
-            <div className="max-w-2xl mx-auto py-16 text-center space-y-4">
+            <div className="flex-1 flex flex-col items-center justify-center py-16 text-center space-y-4">
                 <h1 className="text-2xl font-bold">مکالمه پیدا نشد</h1>
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" className="rounded-xl">
                     <Link href="/messages">بازگشت به پیام‌ها</Link>
                 </Button>
             </div>
@@ -93,10 +54,10 @@ export default function ChatPage({ params }: ChatPageProps) {
     }
 
     return (
-        <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
+        <div className="flex flex-col h-full bg-background/20 relative">
             <ChatHeader
                 conversation={conversation}
-                onSearchClick={handleSearchToggle}
+                onSearchClickAction={() => setIsSearching(!isSearching)} // 👈 نام آپدیت شد
                 isSearchActive={isSearching}
             />
 
@@ -104,21 +65,22 @@ export default function ChatPage({ params }: ChatPageProps) {
                 <MessageSearchBar
                     value={searchQuery}
                     onChange={setSearchQuery}
-                    onClose={handleCloseSearch}
-                    resultCount={
-                        searchQuery.trim().length >= 2
-                            ? searchData?.results.length
-                            : undefined
-                    }
+                    onClose={() => { setIsSearching(false); setSearchQuery(""); }}
+                    resultCount={searchQuery.trim().length >= 2 ? searchData?.results.length : undefined}
                 />
             )}
 
-            <div className="flex-1 overflow-y-auto px-3">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-4">
                 {isSearching ? (
                     <MessageSearchResults
                         conversationId={conversationId}
                         query={searchQuery}
-                        onSelect={handleResultClick}
+                        onSelect={(msgId) => {
+                            setIsSearching(false);
+                            setSearchQuery("");
+                            setHighlightMessageId(msgId);
+                            setTimeout(() => setHighlightMessageId(null), 2500);
+                        }}
                     />
                 ) : (
                     <MessageList
@@ -133,7 +95,7 @@ export default function ChatPage({ params }: ChatPageProps) {
                 <MessageInput
                     conversationId={conversationId}
                     replyTo={replyTo}
-                    onCancelReply={() => setReplyTo(null)}
+                    onCancelReplyAction={() => setReplyTo(null)} // 👈 نام آپدیت شد
                 />
             )}
         </div>

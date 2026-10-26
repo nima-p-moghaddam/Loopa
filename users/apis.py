@@ -266,16 +266,17 @@ class ProfileOutputSerializer(serializers.ModelSerializer):
     is_own = serializers.SerializerMethodField()
     is_subscribed = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()  # 👈 این خط باید باشد
     is_online = serializers.SerializerMethodField()
-    is_email_verified = serializers.SerializerMethodField()    # ← جدید
+    is_email_verified = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
         fields = (
             "user_id", "page_name", "full_name", "email",
-            "avatar",
+            "avatar", "cover_image",  # 👈 اضافه شود
             "is_online",
-            "is_email_verified",                                # ← جدید
+            "is_email_verified",
             "bio", "posts_count", "subscriber_count",
             "subscription_count",
             "is_own", "is_subscribed",
@@ -291,8 +292,12 @@ class ProfileOutputSerializer(serializers.ModelSerializer):
     def get_avatar(self, obj):
         if not obj.avatar:
             return None
-        # مسیر نسبی؛ فرانت getMediaUrl رو صدا می‌زنه
         return obj.avatar.url
+
+    def get_cover_image(self, obj):  # 👈 این متد را فراموش کردی
+        if not obj.cover_image:
+            return None
+        return obj.cover_image.url
 
     def get_email(self, obj):
         request = self.context.get("request")
@@ -308,11 +313,8 @@ class ProfileOutputSerializer(serializers.ModelSerializer):
         return request.user.id == obj.user_id
 
     def get_is_subscribed(self, obj):
-        # اگه annotate شده، از اون بخون (بهینه)
         if hasattr(obj, "_is_subscribed"):
             return obj._is_subscribed
-
-        # fallback برای endpointهایی که annotate نکردن
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return False
@@ -325,35 +327,23 @@ class ProfileOutputSerializer(serializers.ModelSerializer):
 
 
 class ProfileInputSerializer(serializers.Serializer):
-    page_name = serializers.CharField(
-        max_length=30,
-        required=False,
-        allow_blank=True,
-    )
-    bio = serializers.CharField(
-        max_length=1000,
-        allow_blank=True,
-        required=False,
-    )
-    full_name = serializers.CharField(
-        max_length=100,
-        allow_blank=True,
-        required=False,
-    )
+    page_name = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    bio = serializers.CharField(max_length=1000, allow_blank=True, required=False)
+    full_name = serializers.CharField(max_length=100, allow_blank=True, required=False)
     avatar = serializers.ImageField(required=False)
     remove_avatar = serializers.BooleanField(required=False)
+    cover_image = serializers.ImageField(required=False)
+    remove_cover = serializers.BooleanField(required=False)
 
     class Meta:
         ref_name = "ProfileInput"
 
     def validate_page_name(self, value):
         value = value.lower().strip()
-        if not value:
-            return value
+        if not value: return value
 
         if value in RESERVED_PAGE_NAMES:
             raise serializers.ValidationError(f"'{value}' یک نام رزرو شده است.")
-
         if ".." in value:
             raise serializers.ValidationError("نام پیج نمی‌تواند دو نقطه پشت سر هم داشته باشد.")
 
@@ -362,7 +352,6 @@ class ProfileInputSerializer(serializers.Serializer):
         except DjangoValidationError:
             raise serializers.ValidationError("فرمت نام پیج معتبر نیست.")
 
-        # چک کردن اینکه نام پیج قبلاً توسط کس دیگه ای گرفته نشده باشه
         request = self.context.get("request")
         if request and request.user.is_authenticated:
             if Profile.objects.filter(page_name=value).exclude(user=request.user).exists():
@@ -370,7 +359,6 @@ class ProfileInputSerializer(serializers.Serializer):
         else:
             if Profile.objects.filter(page_name=value).exists():
                 raise serializers.ValidationError("این نام پیج قبلاً گرفته شده است.")
-
         return value
 
 
@@ -380,38 +368,21 @@ class ProfileInputSerializer(serializers.Serializer):
 
 class ProfileAPI(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser, JSONParser]  # ← جدید
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    @extend_schema(
-        responses={200: ProfileOutputSerializer, 404: None},
-        description="Get a user's profile by user_id (hidden if blocked).",
-    )
     def get(self, request, user_id):
         try:
             profile = get_profile(viewer=request.user, user_id=user_id)
         except ObjectDoesNotExist:
             raise NotFound("Profile not found.")
+        return Response(ProfileOutputSerializer(profile, context={"request": request}).data)
 
-        serializer = ProfileOutputSerializer(
-            profile,
-            context={"request": request},
-        )
-        return Response(serializer.data)
-
-    @extend_schema(
-        request=ProfileInputSerializer,
-        responses={
-            200: ProfileOutputSerializer,
-            403: None,
-            404: None,
-        },
-        description="Update your own profile (bio, full_name).",
-    )
     def patch(self, request, user_id):
         if request.user.id != user_id:
             raise PermissionDenied("You can only update your own profile.")
 
-        serializer = ProfileInputSerializer(data=request.data)
+        # 👈 اینجا context پاس داده می‌شود تا باگ page_name حل شود
+        serializer = ProfileInputSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -419,35 +390,38 @@ class ProfileAPI(APIView):
         except ObjectDoesNotExist:
             raise NotFound("Profile not found.")
 
-        # ---------- Avatar ----------
+        # Avatar
         remove_avatar = serializer.validated_data.get("remove_avatar", False)
         new_avatar = serializer.validated_data.get("avatar")
-
         if remove_avatar and profile.avatar:
             profile.avatar.delete(save=False)
             profile.avatar = None
             profile.save(update_fields=["avatar"])
         elif new_avatar:
-            # پاک کردن فایل قدیمی
-            if profile.avatar:
-                profile.avatar.delete(save=False)
+            if profile.avatar: profile.avatar.delete(save=False)
             profile.avatar = new_avatar
             profile.save(update_fields=["avatar"])
 
-        # ---------- Bio / Full name ----------
+        # Cover
+        remove_cover = serializer.validated_data.get("remove_cover", False)
+        new_cover = serializer.validated_data.get("cover_image")
+        if remove_cover and profile.cover_image:
+            profile.cover_image.delete(save=False)
+            profile.cover_image = None
+            profile.save(update_fields=["cover_image"])
+        elif new_cover:
+            if profile.cover_image: profile.cover_image.delete(save=False)
+            profile.cover_image = new_cover
+            profile.save(update_fields=["cover_image"])
+
         profile = update_profile(
             profile=profile,
-            page_name=serializer.validated_data.get("page_name"),  # ← جدید
+            page_name=serializer.validated_data.get("page_name"),
             bio=serializer.validated_data.get("bio"),
             full_name=serializer.validated_data.get("full_name"),
         )
 
-        return Response(
-            ProfileOutputSerializer(
-                profile, context={"request": request},
-            ).data,
-            status=status.HTTP_200_OK,
-        )
+        return Response(ProfileOutputSerializer(profile, context={"request": request}).data)
 
 
 # ============================================================

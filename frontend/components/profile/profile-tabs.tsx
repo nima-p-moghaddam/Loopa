@@ -1,63 +1,40 @@
 "use client";
 
-import {LayoutGrid, Bookmark} from "lucide-react";
-import {cn} from "@/lib/utils";
+import { LayoutGrid, Bookmark, Heart, AtSign } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ProfileTabsProps {
-    activeTab: "posts" | "saved";
-    onTabChange: (tab: "posts" | "saved") => void;
+    activeTab: string;
+    onTabChange: (tab: string) => void;
     showSaved: boolean;
 }
 
-export function ProfileTabs({
-    activeTab,
-    onTabChange,
-    showSaved,
-}: ProfileTabsProps) {
-    return (
-        <div className="flex justify-center p-1 mx-auto max-w-md bg-background/40 backdrop-blur-xl border border-border/40 rounded-2xl shadow-sm mt-4">
-            <TabButton
-                isActive={activeTab === "posts"}
-                onClick={() => onTabChange("posts")}
-                icon={<LayoutGrid className="h-5 w-5"/>}
-                label="پست‌ها"
-            />
-            {showSaved && (
-                <TabButton
-                    isActive={activeTab === "saved"}
-                    onClick={() => onTabChange("saved")}
-                    icon={<Bookmark className="h-5 w-5"/>}
-                    label="ذخیره‌شده‌ها"
-                />
-            )}
-        </div>
-    );
-}
+export function ProfileTabs({ activeTab, onTabChange, showSaved }: ProfileTabsProps) {
+    const tabs = [
+        { id: "posts", label: "پست‌ها", icon: LayoutGrid },
+        { id: "stories", label: "استوری‌ها", icon: AtSign },
+        ...(showSaved ? [{ id: "saved", label: "نشان‌شده‌ها", icon: Bookmark }] : []),
+        { id: "likes", label: "لایک‌ها", icon: Heart },
+    ];
 
-function TabButton({
-    isActive,
-    onClick,
-    icon,
-    label,
-}: {
-    isActive: boolean;
-    onClick: () => void;
-    icon: React.ReactNode;
-    label: string;
-}) {
     return (
-        <button
-            onClick={onClick}
-            className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium",
-                "transition-all duration-300 relative press-feedback",
-                isActive
-                    ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-            )}
-        >
-            {icon}
-            {label}
-        </button>
+        <div className="flex border-b border-border/50 mb-6 overflow-x-auto scrollbar-hide">
+            {tabs.map((tab) => (
+                <button
+                    key={tab.id}
+                    onClick={() => onTabChange(tab.id)}
+                    className={cn(
+                        "flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors relative whitespace-nowrap",
+                        activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    <tab.icon className="h-4 w-4" />
+                    {tab.label}
+                    {activeTab === tab.id && (
+                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
+                    )}
+                </button>
+            ))}
+        </div>
     );
 }

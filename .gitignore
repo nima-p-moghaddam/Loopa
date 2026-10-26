@@ -55,3 +55,21 @@ node_modules/
 # FRONTEND — push می‌شود
 # ============================================
 # frontend/
+
+
+# ============ Loopa Restored Clone ============
+Loopa-Restored/
+
+# ============ Duplicate frontend ============
+frontend/frontend/
+
+# ============ Python bytecode ============
+__pycache__/
+*.pyc
+*.pyo
+
+# ============ Next.js generated ============
+.next/
+
+# ============ OS ============
+desktop.ini

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
     X,
@@ -34,6 +35,10 @@ import { formatApiError } from "@/lib/errors";
 import { toast } from "sonner";
 
 const STORY_DURATION = 5000;
+const ANIMATION_DURATION = 300;
+
+// 👇 سه حالت انیمیشن: enter (ورود) → idle (پایدار) → exit (خروج)
+type AnimationState = "enter" | "idle" | "exit";
 
 interface StoryViewerProps {
     authorKey: string;
@@ -43,6 +48,8 @@ interface StoryViewerProps {
 
 export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps) {
     const { userEmail, pageName } = useAuth();
+    const [mounted, setMounted] = useState(false);
+    const [animation, setAnimation] = useState<AnimationState>("enter");
 
     const { data: groups, isLoading: isGroupsLoading } = useStoriesFeed();
     const { data: myStories, isLoading: isMyLoading } = useMyStories();
@@ -101,9 +108,25 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
     );
     const repliesCount = viaMessages?.length ?? 0;
 
+    // ==========================================
+    // 👇 Mount + شروع انیمیشن ورود (Fade-in)
+    // ==========================================
     useEffect(() => {
+        setMounted(true);
         document.body.style.overflow = "hidden";
+
+        // RAF اول: مطمئن شو "enter" پینت شده
+        // RAF دوم: بعد به "idle" سوییچ کن تا CSS transition اجرا بشه
+        let raf2: number | null = null;
+        const raf1 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => {
+                setAnimation("idle");
+            });
+        });
+
         return () => {
+            cancelAnimationFrame(raf1);
+            if (raf2 !== null) cancelAnimationFrame(raf2);
             document.body.style.overflow = "";
         };
     }, []);
@@ -115,17 +138,29 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
         }
     }, [currentStory?.id, isOwn, markViewed]);
 
+    // ==========================================
+    // 👇 Close با انیمیشن خروج (Fade-out)
+    // ==========================================
+    const handleClose = useCallback(() => {
+        if (animation === "exit") return; // جلوگیری از بستن دوباره
+
+        setAnimation("exit");
+        setTimeout(() => {
+            onClose();
+        }, ANIMATION_DURATION);
+    }, [onClose, animation]);
+
     const handleNext = useCallback(() => {
         if (currentIndex < stories.length - 1) setCurrentIndex((i) => i + 1);
-        else onClose();
-    }, [currentIndex, stories.length, onClose]);
+        else handleClose();
+    }, [currentIndex, stories.length, handleClose]);
 
     const handlePrev = useCallback(() => {
         if (currentIndex > 0) setCurrentIndex((i) => i - 1);
     }, [currentIndex]);
 
     // ==========================================
-    // تایمر دقیق استوری (با قابلیت Pause و Resume)
+    // تایمر دقیق استوری
     // ==========================================
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const startTimeRef = useRef<number>(Date.now());
@@ -137,7 +172,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
     }, [currentIndex]);
 
     useEffect(() => {
-        if (isPaused || showStats || !currentStory) return;
+        if (isPaused || showStats || !currentStory || animation === "exit") return;
 
         startTimeRef.current = Date.now();
         timerRef.current = setTimeout(handleNext, remainingTimeRef.current);
@@ -147,10 +182,10 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
             const elapsed = Date.now() - startTimeRef.current;
             remainingTimeRef.current = Math.max(0, remainingTimeRef.current - elapsed);
         };
-    }, [isPaused, showStats, currentIndex, handleNext, currentStory]);
+    }, [isPaused, showStats, currentIndex, handleNext, currentStory, animation]);
 
     // ==========================================
-    // منطق لمس (کلیک / نگه داشتن)
+    // منطق لمس (کلیک چپ/راست + نگه داشتن)
     // ==========================================
     function handlePointerDown() {
         holdStartRef.current = Date.now();
@@ -167,11 +202,8 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
             const clickX = e.clientX - bounds.left;
             const width = bounds.width;
 
-            if (clickX < width / 2) {
-                handlePrev();
-            } else {
-                handleNext();
-            }
+            if (clickX < width / 2) handlePrev();
+            else handleNext();
         }
     }
 
@@ -188,7 +220,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
         deleteStory.mutate(currentStory.id, {
             onSuccess: () => {
                 toast.success("استوری حذف شد");
-                if (stories.length <= 1) onClose();
+                if (stories.length <= 1) handleClose();
                 else setCurrentIndex((i) => Math.max(0, i - 1));
             },
             onError: (error) => {
@@ -198,34 +230,53 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
         });
     }
 
+    if (!mounted) return null;
+
+    // 👇 کلاس‌های انیمیشن
+    // enter: مخفی و کوچک (بدون transition — حالت شروع)
+    // idle:  نمایان و بزرگ (با transition — انیمیشن ورود)
+    // exit:  محو شدن با easing متفاوت (انیمیشن خروج)
+    const backdropClasses = cn(
+        "fixed inset-0 z-[100] bg-black flex items-center justify-center overscroll-none",
+        animation === "enter" && "opacity-0",
+        animation === "idle" && "opacity-100 transition-opacity duration-300 ease-out",
+        animation === "exit" && "opacity-0 transition-opacity duration-300 ease-in pointer-events-none"
+    );
+
+    const contentClasses = cn(
+        "relative w-full h-full sm:max-w-md sm:h-[90vh] sm:rounded-2xl overflow-hidden flex flex-col bg-black",
+        animation === "enter" && "scale-90 opacity-0",
+        animation === "idle" && "scale-100 opacity-100 transition-all duration-300 ease-out",
+        animation === "exit" && "scale-90 opacity-0 transition-all duration-300 ease-in"
+    );
+
+    // حالت Loading
     if (isLoading || !group || stories.length === 0) {
-        return (
-            <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+        return createPortal(
+            <div className={backdropClasses}>
                 <LoadingSpinner />
-            </div>
+            </div>,
+            document.body
         );
     }
 
     const displayName = group.author_page_name ?? group.author_email;
     const imageUrl = getMediaUrl(currentStory.image);
 
-    return (
-        <div
-            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-            onClick={onClose}
-        >
+    return createPortal(
+        <div className={backdropClasses} onClick={handleClose}>
             <div
-                className="relative w-full max-w-md h-[90vh] md:h-[85vh] bg-black rounded-lg overflow-hidden flex flex-col"
+                className={contentClasses}
                 onClick={(e) => e.stopPropagation()}
             >
                 <StoryProgress
                     total={stories.length}
                     current={currentIndex}
-                    isPaused={isPaused || showStats}
+                    isPaused={isPaused || showStats || animation === "exit"}
                     duration={STORY_DURATION}
                 />
 
-                {/* هدر (آواتار و دکمه‌ها) */}
+                {/* هدر */}
                 <div className="absolute top-6 inset-x-0 z-40 flex items-center gap-3 px-3 pointer-events-none">
                     <div className="pointer-events-auto flex items-center gap-3 flex-1">
                         <UserAvatar
@@ -257,7 +308,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="text-white hover:bg-white/10 hover:text-white"
                         >
                             <X className="h-5 w-5" />
@@ -265,7 +316,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
                     </div>
                 </div>
 
-                {/* محتوا (عکس و متن) */}
+                {/* محتوا */}
                 <div className="absolute inset-0 z-10 pointer-events-none flex flex-col pb-20">
                     {imageUrl && (
                         <div className="relative flex-1 min-h-0">
@@ -296,7 +347,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
                     )}
                 </div>
 
-                {/* لایه‌ی نامرئی برای دریافت کلیک‌ها و تشخیص Hold */}
+                {/* لایه تعامل */}
                 {!showStats && (
                     <div
                         className="absolute inset-0 z-20 touch-none"
@@ -306,7 +357,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
                     />
                 )}
 
-                {/* کادر تایپ و ری‌اکشن */}
+                {/* ری‌اکشن و پاسخ */}
                 {!isOwn && (
                     <div
                         className="absolute bottom-0 inset-x-0 z-30 flex items-center gap-2 p-3 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto"
@@ -327,7 +378,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
                     </div>
                 )}
 
-                {/* بخش آمار برای استوری خودم */}
+                {/* آمار بیننده (برای خودم) */}
                 {isOwn && (
                     <div
                         className="absolute bottom-0 inset-x-0 z-30 p-3 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto"
@@ -383,6 +434,7 @@ export function StoryViewer({ authorKey, isOwnView, onClose }: StoryViewerProps)
                     />
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

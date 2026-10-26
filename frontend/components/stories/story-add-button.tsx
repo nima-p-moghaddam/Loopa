@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { useState } from "react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useAuth } from "@/providers/auth-provider";
 import { useProfile } from "@/hooks/use-profile";
@@ -16,6 +17,7 @@ export function StoryAddButton({ onOpenStory }: StoryAddButtonProps) {
     const { pageName, userEmail } = useAuth();
     const { data: profile } = useProfile(pageName ?? undefined);
     const { data: myStories } = useMyStories();
+    const [hasOpened, setHasOpened] = useState(false);
 
     if (!pageName && !userEmail) return null;
 
@@ -27,15 +29,20 @@ export function StoryAddButton({ onOpenStory }: StoryAddButtonProps) {
             {hasStory ? (
                 <button
                     type="button"
-                    onClick={onOpenStory}
+                    onClick={() => {
+                        setHasOpened(true);
+                        onOpenStory?.();
+                    }}
                     className={cn(
                         "relative rounded-full p-[2.5px]",
-                        "bg-brand-gradient",
+                        hasOpened
+                            ? "bg-border" // 👈 خاکستری اگر باز شده
+                            : "bg-gradient-to-tr from-primary to-success", // 👈 رنگی اگر باز نشده
                         "transition-transform hover:scale-105 duration-200"
                     )}
                     aria-label="مشاهده‌ی استوری خودم"
                 >
-                    <div className="rounded-full p-[2px] bg-background">
+                    <div className="rounded-full p-[2px] bg-card">
                         <UserAvatar
                             avatar={profile?.avatar}
                             fallback={displayName}
@@ -44,7 +51,6 @@ export function StoryAddButton({ onOpenStory }: StoryAddButtonProps) {
                         />
                     </div>
 
-                    {/* Plus button */}
                     <Link
                         href="/stories/new"
                         onClick={(e) => e.stopPropagation()}
@@ -52,7 +58,7 @@ export function StoryAddButton({ onOpenStory }: StoryAddButtonProps) {
                             "absolute bottom-0 right-0 h-6 w-6 rounded-full",
                             "bg-primary text-primary-foreground",
                             "flex items-center justify-center",
-                            "border-2 border-background",
+                            "border-2 border-card",
                             "hover:bg-primary/90 transition-colors"
                         )}
                         aria-label="ساخت استوری جدید"
@@ -63,9 +69,9 @@ export function StoryAddButton({ onOpenStory }: StoryAddButtonProps) {
             ) : (
                 <Link
                     href="/stories/new"
-                    className="relative rounded-full p-[2.5px] bg-muted transition-transform hover:scale-105 duration-200"
+                    className="relative rounded-full transition-transform hover:scale-105 duration-200"
                 >
-                    <div className="rounded-full p-[2px] bg-background">
+                    <div className="rounded-full p-[2px] bg-card">
                         <UserAvatar
                             avatar={profile?.avatar}
                             fallback={displayName}
@@ -79,7 +85,7 @@ export function StoryAddButton({ onOpenStory }: StoryAddButtonProps) {
                             "absolute bottom-0 right-0 h-6 w-6 rounded-full",
                             "bg-primary text-primary-foreground",
                             "flex items-center justify-center",
-                            "border-2 border-background"
+                            "border-2 border-card"
                         )}
                     >
                         <Plus className="h-3.5 w-3.5" />

@@ -23,8 +23,8 @@ export function StoryBar() {
 
     return (
         <>
-            <div className="border-b pb-4">
-                <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+            <div className="border-b border-border/50 pb-4 mb-2">
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-2 px-1">
                     {/* Add button (self) */}
                     <StoryAddButton
                         onOpenStory={() => {
@@ -46,13 +46,9 @@ export function StoryBar() {
 
                     {/* Other users' stories */}
                     {groups?.map((group) => {
+                        // 👇 جلوگیری از نمایش دوباره خودم
                         if (group.author_email === userEmail) return null;
-                        if (
-                            !userEmail &&
-                            group.author_page_name === pageName
-                        ) {
-                            return null;
-                        }
+                        if (pageName && group.author_page_name === pageName) return null;
 
                         return (
                             <StoryRing

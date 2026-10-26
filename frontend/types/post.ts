@@ -10,6 +10,7 @@ export interface Post {
     content: string;
     images: PostImage[];
     author_email: string;
+    author_page_name: string | null; // 👈 این فیلد باید باشد
     author_avatar: string | null;
     likes_count: number;
     comments_count: number;

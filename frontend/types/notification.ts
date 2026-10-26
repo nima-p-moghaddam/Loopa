@@ -8,8 +8,8 @@ export type NotificationVerb =
     | "reply_story"
     | "react_message"
     | "reply_message"
-    | "mention_post"         // ← جدید
-    | "mention_comment";     // ← جدید
+    | "mention_post"
+    | "mention_comment";
 
 export interface Notification {
     id: number;
@@ -19,6 +19,7 @@ export interface Notification {
     actor_full_name: string | null;
     verb: NotificationVerb;
     target_post_slug: string | null;
+    target_post_image: string | null; // 👈 جدید
     target_comment_id: number | null;
     target_story_id: number | null;
     target_conversation_id: number | null;

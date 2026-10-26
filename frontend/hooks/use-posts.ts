@@ -1,8 +1,7 @@
-import {useInfiniteQuery, useMutation, useQueryClient, useQuery} from "@tanstack/react-query";
-import {api} from "@/lib/api";
-import type {Post} from "@/types/post";
-import type {PaginatedResponse} from "@/types/api";
-import type {CreatePostInput} from "@/lib/schemas/post";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import type { Post } from "@/types/post";
+import type { PaginatedResponse } from "@/types/api";
 
 export function useFeed() {
     return useInfiniteQuery({
@@ -15,10 +14,8 @@ export function useFeed() {
         },
     });
 }
-export function useExplore(
-    filters: Record<string, string> = {},
-    page: number = 1
-) {
+
+export function useExplore(filters: Record<string, string> = {}, page: number = 1) {
     const params = new URLSearchParams({
         ...filters,
         page: String(page),
@@ -29,11 +26,18 @@ export function useExplore(
     });
 }
 
+interface CreatePostPayload {
+    title: string;
+    slug: string;
+    content: string;
+    images?: File[];
+}
+
 export function useCreatePost() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (input: CreatePostInput) => {
+        mutationFn: (input: CreatePostPayload) => {
             const formData = new FormData();
             formData.append("title", input.title);
             formData.append("slug", input.slug);
@@ -48,10 +52,10 @@ export function useCreatePost() {
             return api.post<Post>("/posts/", formData);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({queryKey: ["feed"]});
-            queryClient.invalidateQueries({queryKey: ["explore"]});
-            queryClient.invalidateQueries({queryKey: ["user-posts"]});
-            queryClient.invalidateQueries({queryKey: ["profile"]});
+            queryClient.invalidateQueries({ queryKey: ["feed"] });
+            queryClient.invalidateQueries({ queryKey: ["explore"] });
+            queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+            queryClient.invalidateQueries({ queryKey: ["profile"] });
         },
     });
 }
@@ -80,14 +84,12 @@ export function useEditPost() {
             formData.append("title", input.title);
             formData.append("content", input.content);
 
-            // ارسال ID عکس‌هایی که باید نگه داشته شوند
             if (input.keepImageIds) {
                 input.keepImageIds.forEach(id => {
                     formData.append("keep_image_ids", String(id));
                 });
             }
 
-            // ارسال عکس‌های جدید
             if (input.newImages && input.newImages.length > 0) {
                 input.newImages.forEach((img) => {
                     formData.append("images", img);

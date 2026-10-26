@@ -170,6 +170,7 @@ class PostAPI(APIView):
 
     class OutputSerializer(serializers.ModelSerializer):
         author_email = serializers.EmailField(source="author.email", read_only=True)
+        author_page_name = serializers.CharField(source="author.profile.page_name", read_only=True, allow_null=True) # 👈 این خط اضافه شود
         author_avatar = serializers.SerializerMethodField()
         images = PostImageOutputSerializer(many=True, read_only=True)
         is_liked = serializers.BooleanField(source="_is_liked", read_only=True)
@@ -180,7 +181,7 @@ class PostAPI(APIView):
             fields = (
                 "slug", "title", "content",
                 "images",
-                "author_email",
+                "author_email", "author_page_name", # 👈 اینجا هم اضافه شود
                 "author_avatar",
                 "likes_count", "comments_count", "shares_count",
                 "is_liked", "is_saved",
@@ -2706,58 +2707,32 @@ class UserPostsAPI(APIView):
 class NotificationOutputSerializer(serializers.ModelSerializer):
     actor_email = serializers.EmailField(source="actor.email", read_only=True)
     actor_avatar = serializers.SerializerMethodField()
-    actor_page_name = serializers.CharField(
-        source="actor.profile.page_name",
-        read_only=True,
-        allow_null=True,
-    )
-    actor_full_name = serializers.CharField(
-        source="actor.profile.full_name",
-        read_only=True,
-        allow_null=True,
-    )
-    target_post_slug = serializers.SlugField(
-        source="target_post.slug",
-        read_only=True,
-        allow_null=True,
-    )
-    target_comment_id = serializers.IntegerField(
-        source="target_comment.id",
-        read_only=True,
-        allow_null=True,
-    )
-    target_story_id = serializers.IntegerField(
-        source="target_story.id",
-        read_only=True,
-        allow_null=True,
-    )
-    target_conversation_id = serializers.IntegerField(
-        source="target_conversation.id",
-        read_only=True,
-        allow_null=True,
-    )
+    actor_page_name = serializers.CharField(source="actor.profile.page_name", read_only=True, allow_null=True)
+    actor_full_name = serializers.CharField(source="actor.profile.full_name", read_only=True, allow_null=True)
+
+    target_post_slug = serializers.SlugField(source="target_post.slug", read_only=True, allow_null=True)
+    target_post_image = serializers.SerializerMethodField()  # 👈 جدید
+    target_comment_id = serializers.IntegerField(source="target_comment.id", read_only=True, allow_null=True)
+    target_story_id = serializers.IntegerField(source="target_story.id", read_only=True, allow_null=True)
+    target_conversation_id = serializers.IntegerField(source="target_conversation.id", read_only=True, allow_null=True)
 
     class Meta:
         model = Notification
         fields = (
-            "id",
-            "actor_email",
-            "actor_avatar",
-            "actor_page_name",
-            "actor_full_name",
-            "verb",
-            "target_post_slug",
-            "target_comment_id",
-            "target_story_id",
-            "target_conversation_id",
-            "is_read",
-            "created_at",
+            "id", "actor_email", "actor_avatar", "actor_page_name", "actor_full_name",
+            "verb", "target_post_slug", "target_post_image",  # 👈 اضافه شد
+            "target_comment_id", "target_story_id", "target_conversation_id",
+            "is_read", "created_at",
         )
         ref_name = "NotificationOutput"
 
     def get_actor_avatar(self, obj):
         return _avatar_url(obj.actor)
 
+    def get_target_post_image(self, obj):  # 👈 جدید
+        if obj.target_post and obj.target_post.images.exists():
+            return obj.target_post.images.first().image.url
+        return None
 
 class NotificationListAPI(APIView):
     permission_classes = [IsAuthenticated]
